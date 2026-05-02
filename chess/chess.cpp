@@ -147,6 +147,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
             // TODO: 在此新增任何使用 hdc 的繪圖程式碼...
+            int BoardSize = 80; // chess board size
+            HPEN hpen = CreatePen(PS_NULL,0,0); // no border
+            SelectObject(hdc, hpen);
+            HBRUSH Light = CreateSolidBrush(RGB(238, 238, 210)); // white board
+            HBRUSH Dark = CreateSolidBrush(RGB(118, 150, 86)); // green board
+            for (int r = 0;r < 8;r++) {
+                for (int c = 0;c < 8;c++) {
+                    if ((r + c) % 2 == 0) {
+                        SelectObject(hdc, Light);
+                    }
+                    else {
+                        SelectObject(hdc, Dark);
+                    }
+                    Rectangle(hdc, c * BoardSize, r * BoardSize, c * BoardSize + BoardSize, r * BoardSize + BoardSize);
+                }
+            } // create chess board
+            DeleteObject(Light); // release memory
+            DeleteObject(Dark); // release memory
             EndPaint(hWnd, &ps);
         }
         break;

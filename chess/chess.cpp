@@ -121,6 +121,20 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //  WM_DESTROY  - 張貼結束訊息然後傳回
 //
 //
+int ChessBoard[8][8] = {
+    {-2,-3,-4,-5,-6,-4,-3,-2},
+    {-1,-1,-1,-1,-1,-1,-1,-1},
+    { 0, 0, 0, 0, 0, 0, 0, 0},
+    { 0, 0, 0, 0, 0, 0, 0, 0},
+    { 0, 0, 0, 0, 0, 0, 0, 0},
+    { 0, 0, 0, 0, 0, 0, 0, 0},
+    { 1, 1, 1, 1, 1, 1, 1, 1},
+    { 2, 3, 4, 5, 6, 4, 3, 2},
+};
+/*  White:Pawn =  1, Rook =  2,Knight =  3,Bishop =  4,Queen =  5,King =  6
+    Black:Pawn = -1, Rook = -2,Knight = -3,Bishop = -4,Queen = -5,King = -6
+*/ 
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
@@ -148,19 +162,64 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             HDC hdc = BeginPaint(hWnd, &ps);
             // TODO: 在此新增任何使用 hdc 的繪圖程式碼...
             int BoardSize = 80; // chess board size
-            HPEN hpen = CreatePen(PS_NULL,0,0); // no border
-            SelectObject(hdc, hpen);
             HBRUSH Light = CreateSolidBrush(RGB(238, 238, 210)); // white board
             HBRUSH Dark = CreateSolidBrush(RGB(118, 150, 86)); // green board
+            SetBkMode(hdc, TRANSPARENT); 
+            LOGFONT lf = { 0 };// initialization
+            lf.lfHeight = 80; // set font size
+            HFONT chess = CreateFontIndirect(&lf); // create font
+            SelectObject(hdc, chess);
             for (int r = 0;r < 8;r++) {
                 for (int c = 0;c < 8;c++) {
+                    RECT rect;
+                    rect.left = c * BoardSize;
+                    rect.top = r * BoardSize;
+                    rect.right = c * BoardSize + BoardSize;
+                    rect.bottom = r * BoardSize + BoardSize;
                     if ((r + c) % 2 == 0) {
-                        SelectObject(hdc, Light);
+                        FillRect(hdc, &rect, Light);
                     }
                     else {
-                        SelectObject(hdc, Dark);
+                        FillRect(hdc, &rect, Dark);
                     }
-                    Rectangle(hdc, c * BoardSize, r * BoardSize, c * BoardSize + BoardSize, r * BoardSize + BoardSize);
+                    switch (ChessBoard[r][c]) {
+                        case -2:
+                            DrawText(hdc, L"♜", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                            break;
+                        case -3:
+                            DrawText(hdc, L"♞", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                            break;
+                        case -4:
+                            DrawText(hdc, L"♝", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                            break;
+                        case -5:
+                            DrawText(hdc, L"♛", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                            break;
+                        case -6:
+                            DrawText(hdc, L"♚", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                            break;
+                        case -1:
+                            DrawText(hdc, L"♟", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                            break;
+                        case 1:
+                            DrawText(hdc, L"♙", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                            break;
+                        case 2:
+                            DrawText(hdc, L"♖", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                            break;
+                        case 3:
+                            DrawText(hdc, L"♘", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                            break;
+                        case 4:
+                            DrawText(hdc, L"♗", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                            break;
+                        case 5:
+                            DrawText(hdc, L"♕", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                            break;
+                        case 6:
+                            DrawText(hdc, L"♔", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                            break;
+                    }
                 }
             } // create chess board
             DeleteObject(Light); // release memory

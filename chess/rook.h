@@ -1,0 +1,9 @@
+#pragma once
+
+#include "chessmen.h"
+
+class rook : public chessmen {
+	public:
+		void move() override;
+		void attack() override;
+};

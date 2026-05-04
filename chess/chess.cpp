@@ -3,13 +3,37 @@
 
 #include "framework.h"
 #include "chess.h"
+#include "king.h"
+#include "queen.h"
+#include "bishop.h"
+#include "rook.h"
+#include "knight.h"
+#include "pawn.h"
+#include <windowsx.h>
 
 #define MAX_LOADSTRING 100
-
+#define BoardSize 80 // chess board size
 // 全域變數:
 HINSTANCE hInst;                                // 目前執行個體
 WCHAR szTitle[MAX_LOADSTRING];                  // 標題列文字
 WCHAR szWindowClass[MAX_LOADSTRING];            // 主視窗類別名稱
+static int clickCol = -1;
+static int clickRow = -1;
+/* record the user click position
+*/
+int ChessBoard[8][8] = {
+    { 7,  8,  9, 10, 11,  9,  8,  7},
+    { 6,  6,  6,  6,  6,  6,  6,  6},
+    {-1, -1, -1, -1, -1, -1, -1, -1},
+    {-1, -1, -1, -1, -1, -1, -1, -1},
+    {-1, -1, -1, -1, -1, -1, -1, -1},
+    {-1, -1, -1, -1, -1, -1, -1, -1},
+    { 0,  0,  0,  0,  0,  0,  0,  0},
+    { 1,  2,  3,  4,  5,  3,  2,  1},
+};
+/*  White:Pawn= 0, Rook= 1, Knight= 2, Bishop= 3, Queen=  4, King=  5
+    Black:Pawn= 6, Rook= 7, Knight= 8, Bishop= 9, Queen= 10, King= 11
+*/
 
 // 這個程式碼模組所包含之函式的向前宣告:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -121,19 +145,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //  WM_DESTROY  - 張貼結束訊息然後傳回
 //
 //
-int ChessBoard[8][8] = {
-    {-2,-3,-4,-5,-6,-4,-3,-2},
-    {-1,-1,-1,-1,-1,-1,-1,-1},
-    { 0, 0, 0, 0, 0, 0, 0, 0},
-    { 0, 0, 0, 0, 0, 0, 0, 0},
-    { 0, 0, 0, 0, 0, 0, 0, 0},
-    { 0, 0, 0, 0, 0, 0, 0, 0},
-    { 1, 1, 1, 1, 1, 1, 1, 1},
-    { 2, 3, 4, 5, 6, 4, 3, 2},
-};
-/*  White:Pawn =  1, Rook =  2,Knight =  3,Bishop =  4,Queen =  5,King =  6
-    Black:Pawn = -1, Rook = -2,Knight = -3,Bishop = -4,Queen = -5,King = -6
-*/ 
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -156,14 +167,40 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
         }
         break;
+    case WM_LBUTTONDOWN: 
+    {
+        int xPos = GET_X_LPARAM(lParam);
+        int yPos = GET_Y_LPARAM(lParam);
+        int col = xPos / BoardSize;
+        int row = yPos / BoardSize;
+        if (col >= 0 && col < 8 && row >= 0 && row < 8) {
+            RECT updateRect;
+            if (clickRow >= 0 && clickRow < 8 && clickCol >= 0 && clickCol < 8) {
+                updateRect.left = clickCol * BoardSize;
+                updateRect.top = clickRow * BoardSize;
+                updateRect.right = clickCol * BoardSize + BoardSize;
+                updateRect.bottom = clickRow * BoardSize + BoardSize;
+                InvalidateRect(hWnd, &updateRect, FALSE);//update the screen
+            }
+            clickCol = col;
+            clickRow = row;
+            updateRect.left = clickCol * BoardSize;
+            updateRect.top = clickRow * BoardSize;
+            updateRect.right = clickCol * BoardSize + BoardSize;
+            updateRect.bottom = clickRow * BoardSize + BoardSize;
+            InvalidateRect(hWnd, &updateRect, FALSE);
+            UpdateWindow(hWnd);
+        }
+    }
+    break;
     case WM_PAINT:
         {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
             // TODO: 在此新增任何使用 hdc 的繪圖程式碼...
-            int BoardSize = 80; // chess board size
             HBRUSH Light = CreateSolidBrush(RGB(238, 238, 210)); // white board
             HBRUSH Dark = CreateSolidBrush(RGB(118, 150, 86)); // green board
+            HPEN click = CreatePen(PS_SOLID, 3.9, RGB(255, 255, 0));
             SetBkMode(hdc, TRANSPARENT); 
             LOGFONT lf = { 0 };// initialization
             lf.lfHeight = 80; // set font size
@@ -176,54 +213,81 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     rect.top = r * BoardSize;
                     rect.right = c * BoardSize + BoardSize;
                     rect.bottom = r * BoardSize + BoardSize;
-                    if ((r + c) % 2 == 0) {
-                        FillRect(hdc, &rect, Light);
+                    if (clickRow == r && clickCol == c) {
+                        if (ChessBoard[clickRow][clickCol] != -1) {
+                            if ((r + c) % 2 == 0) {
+                                SelectObject(hdc, Light);
+                            }
+                            else {
+                                SelectObject(hdc, Dark);
+                            }
+                            SelectObject(hdc, click);
+                            Rectangle(hdc, rect.left + 1, rect.top + 1, rect.right - 1, rect.bottom - 1);
+                        }
+                        else {
+                            if ((r + c) % 2 == 0) {
+                                FillRect(hdc, &rect, Light);
+                            }
+                            else {
+                                FillRect(hdc, &rect, Dark);
+                            }
+                        }
                     }
                     else {
-                        FillRect(hdc, &rect, Dark);
+                        if ((r + c) % 2 == 0) {
+                            FillRect(hdc, &rect, Light);
+                        }
+                        else {
+                            FillRect(hdc, &rect, Dark);
+                        }
                     }
                     switch (ChessBoard[r][c]) {
-                        case -2:
+                        case 7:
                             DrawText(hdc, L"♜", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
                             break;
-                        case -3:
+                        case 8:
                             DrawText(hdc, L"♞", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
                             break;
-                        case -4:
+                        case 9:
                             DrawText(hdc, L"♝", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
                             break;
-                        case -5:
+                        case 10:
                             DrawText(hdc, L"♛", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
                             break;
-                        case -6:
+                        case 11:
                             DrawText(hdc, L"♚", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
                             break;
-                        case -1:
+                        case 6:
                             DrawText(hdc, L"♟", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
                             break;
-                        case 1:
+                        case 0:
                             DrawText(hdc, L"♙", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
                             break;
-                        case 2:
+                        case 1:
                             DrawText(hdc, L"♖", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
                             break;
-                        case 3:
+                        case 2:
                             DrawText(hdc, L"♘", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
                             break;
-                        case 4:
+                        case 3:
                             DrawText(hdc, L"♗", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
                             break;
-                        case 5:
+                        case 4:
                             DrawText(hdc, L"♕", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
                             break;
-                        case 6:
+                        case 5:
                             DrawText(hdc, L"♔", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                            break;
+                        case -1:
+                            DrawText(hdc, L"", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
                             break;
                     }
                 }
             } // create chess board
             DeleteObject(Light); // release memory
-            DeleteObject(Dark); // release memory
+            DeleteObject(Dark); 
+            DeleteObject(click);
+            DeleteObject(chess);
             EndPaint(hWnd, &ps);
         }
         break;

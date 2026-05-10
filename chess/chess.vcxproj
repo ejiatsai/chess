@@ -127,20 +127,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="bishop.h" />
     <ClInclude Include="chess.h" />
     <ClInclude Include="chessmen.h" />
     <ClInclude Include="framework.h" />
-    <ClInclude Include="king.h" />
-    <ClInclude Include="knight.h" />
-    <ClInclude Include="pawn.h" />
-    <ClInclude Include="queen.h" />
     <ClInclude Include="Resource.h" />
-    <ClInclude Include="rook.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="chess.cpp" />
+    <ClCompile Include="chessmen.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="chess.rc" />

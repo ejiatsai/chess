@@ -27,30 +27,15 @@
     <ClInclude Include="chess.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
-    <ClInclude Include="king.h">
-      <Filter>來源檔案</Filter>
-    </ClInclude>
     <ClInclude Include="chessmen.h">
-      <Filter>來源檔案</Filter>
-    </ClInclude>
-    <ClInclude Include="queen.h">
-      <Filter>來源檔案</Filter>
-    </ClInclude>
-    <ClInclude Include="bishop.h">
-      <Filter>來源檔案</Filter>
-    </ClInclude>
-    <ClInclude Include="rook.h">
-      <Filter>來源檔案</Filter>
-    </ClInclude>
-    <ClInclude Include="knight.h">
-      <Filter>來源檔案</Filter>
-    </ClInclude>
-    <ClInclude Include="pawn.h">
       <Filter>來源檔案</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="chess.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
+    <ClCompile Include="chessmen.cpp">
       <Filter>來源檔案</Filter>
     </ClCompile>
   </ItemGroup>

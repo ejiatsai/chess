@@ -3,12 +3,7 @@
 
 #include "framework.h"
 #include "chess.h"
-#include "king.h"
-#include "queen.h"
-#include "bishop.h"
-#include "rook.h"
-#include "knight.h"
-#include "pawn.h"
+#include "chessmen.h"
 #include <windowsx.h>
 
 #define MAX_LOADSTRING 100
@@ -19,21 +14,32 @@ WCHAR szTitle[MAX_LOADSTRING];                  // 標題列文字
 WCHAR szWindowClass[MAX_LOADSTRING];            // 主視窗類別名稱
 static int clickCol = -1;
 static int clickRow = -1;
+static int currentCol = -1;
+static int currentRow = -1;
+static int turn = 1;
+static int pawnTwo = -1;
 /* record the user click position
 */
-int ChessBoard[8][8] = {
-    { 7,  8,  9, 10, 11,  9,  8,  7},
-    { 6,  6,  6,  6,  6,  6,  6,  6},
-    {-1, -1, -1, -1, -1, -1, -1, -1},
-    {-1, -1, -1, -1, -1, -1, -1, -1},
-    {-1, -1, -1, -1, -1, -1, -1, -1},
-    {-1, -1, -1, -1, -1, -1, -1, -1},
-    { 0,  0,  0,  0,  0,  0,  0,  0},
-    { 1,  2,  3,  4,  5,  3,  2,  1},
+bool Move[8][8] = { FALSE };
+bool Attack[8][8] = { FALSE };
+
+Chess ChessBoard[8][8] = {
+    { {1, -1, 0}, {2, -1, 0}, {3, -1, 0}, {4, -1, 0}, {5, -1, 0}, {3, -1, 0}, {2, -1, 0}, {1, -1, 0} },
+    { {0, -1, 0}, {0, -1, 0}, {0, -1, 0}, {0, -1, 0}, {0, -1, 0}, {0, -1, 0}, {0, -1, 0}, {0, -1, 0} },
+    { {-1,  0, 0}, {-1,  0, 0}, {-1,  0, 0}, {-1,  0, 0}, {-1,  0, 0}, {-1,  0, 0}, {-1,  0, 0}, {-1,  0, 0} },
+    { {-1,  0, 0}, {-1,  0, 0}, {-1,  0, 0}, {-1,  0, 0}, {-1,  0, 0}, {-1,  0, 0}, {-1,  0, 0}, {-1,  0, 0} },
+    { {-1,  0, 0}, {-1,  0, 0}, {-1,  0, 0}, {-1,  0, 0}, {-1,  0, 0}, {-1,  0, 0}, {-1,  0, 0}, {-1,  0, 0} },
+    { {-1,  0, 0}, {-1,  0, 0}, {-1,  0, 0}, {-1,  0, 0}, {-1,  0, 0}, {-1,  0, 0}, {-1,  0, 0}, {-1,  0, 0} },
+    { {0,  1, 0}, {0,  1, 0}, {0,  1, 0}, {0,  1, 0}, {0,  1, 0}, {0,  1, 0}, {0,  1, 0}, {0,  1, 0} },
+    { {1,  1, 0}, {2,  1, 0}, {3,  1, 0}, {4,  1, 0}, {5,  1, 0}, {3,  1, 0}, {2,  1, 0}, {1,  1, 0} }
 };
-/*  White:Pawn= 0, Rook= 1, Knight= 2, Bishop= 3, Queen=  4, King=  5
-    Black:Pawn= 6, Rook= 7, Knight= 8, Bishop= 9, Queen= 10, King= 11
+/*  Pawn = 0, Rook = 1, Knight = 2, Bishop = 3, Queen =  4, King =  5
+    White = 1,Black = -1
+    space = -1;
+    not moved = 0,not moved = 1;
 */
+
+chessmen chessmove;
 
 // 這個程式碼模組所包含之函式的向前宣告:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -174,23 +180,170 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         int col = xPos / BoardSize;
         int row = yPos / BoardSize;
         if (col >= 0 && col < 8 && row >= 0 && row < 8) {
-            RECT updateRect;
-            if (clickRow >= 0 && clickRow < 8 && clickCol >= 0 && clickCol < 8) {
-                updateRect.left = clickCol * BoardSize;
-                updateRect.top = clickRow * BoardSize;
-                updateRect.right = clickCol * BoardSize + BoardSize;
-                updateRect.bottom = clickRow * BoardSize + BoardSize;
-                InvalidateRect(hWnd, &updateRect, FALSE);//update the screen
+            if (Move[row][col] == TRUE || Attack[row][col] == TRUE) {
+                bool Moved = FALSE;
+                if (ChessBoard[currentRow][currentCol].type == 0) {
+                    if (currentCol != col && currentRow != row && ChessBoard[row][col].type == -1 && col == pawnTwo) {
+                        if (row == 2 && Attack[3][col] == TRUE) {
+                            chessmove.move(ChessBoard, currentCol, currentRow, col, row);
+                            ChessBoard[3][col] = { -1,0,0 };
+                            Moved = TRUE;
+                        }
+                        else if (row == 5 && Attack[4][col] == TRUE) {
+                            chessmove.move(ChessBoard, currentCol, currentRow, col, row);
+                            ChessBoard[4][col] = { -1,0,0 };
+                            Moved = TRUE;
+                        }
+                    }
+                    if (!Moved && currentRow != row) {
+                        chessmove.move(ChessBoard, currentCol, currentRow, col, row);
+                        if (abs(currentRow - row) == 2) {
+                            pawnTwo = col;
+                        }
+                        else {
+                            pawnTwo = -1;
+                        }
+                        Moved = TRUE;
+                    }
+                    else {
+                        pawnTwo = -1;
+                    }
+                }
+                else {
+                    pawnTwo = -1;
+                    chessmove.move(ChessBoard, currentCol, currentRow, col, row);
+                    Moved = TRUE;
+                }
+                if (Moved) {
+                    ChessBoard[row][col].ismoved++;
+                    currentCol = -1;
+                    currentRow = -1;
+                    clickCol = -1;
+                    clickRow = -1;
+                    for (int r = 0;r < 8;r++) {
+                        for (int c = 0;c < 8;c++) {
+                            Move[r][c] = FALSE;
+                            Attack[r][c] = FALSE;
+                        }
+                    }
+                    turn *= -1;
+                }
             }
-            clickCol = col;
-            clickRow = row;
-            updateRect.left = clickCol * BoardSize;
-            updateRect.top = clickRow * BoardSize;
-            updateRect.right = clickCol * BoardSize + BoardSize;
-            updateRect.bottom = clickRow * BoardSize + BoardSize;
-            InvalidateRect(hWnd, &updateRect, FALSE);
-            UpdateWindow(hWnd);
+            if (turn == 1 && ChessBoard[row][col].color == 1) {
+                for (int r = 0;r < 8;r++) {
+                    for (int c = 0;c < 8;c++) {
+                        Move[r][c] = FALSE;
+                        Attack[r][c] = FALSE;
+                    }
+                }
+                switch (ChessBoard[row][col].type) {
+                case 0:
+                    if (ChessBoard[row][col].ismoved == 0) {
+                        if (row - 2 >= 0 && row - 2 < 8 && col >= 0 && col < 8 && ChessBoard[row - 2][col].type == -1 && ChessBoard[row - 1][col].type == -1) {
+                            Move[row - 2][col] = TRUE;
+                            Move[row - 1][col] = TRUE;
+                        }
+                        else if (row - 1 >= 0 && row - 1 < 8 && col >= 0 && col < 8 && ChessBoard[row - 1][col].type == -1) {
+                            Move[row - 1][col] = TRUE;
+                        }
+                        if (row - 1 >= 0 && row - 1 < 8 && col - 1 >= 0 && col - 1 < 8 && ChessBoard[row - 1][col - 1].type != -1 && ChessBoard[row - 1][col - 1].color != 1) {
+                            Attack[row - 1][col - 1] = TRUE;
+                        }
+                        if (row - 1 >= 0 && row - 1 < 8 && col + 1 >= 0 && col + 1 < 8 && ChessBoard[row - 1][col + 1].type != -1 && ChessBoard[row - 1][col + 1].color != 1) {
+                            Attack[row - 1][col + 1] = TRUE;
+                        }
+                    }
+                    else {
+                        if (row - 1 >= 0 && row - 1 < 8 && col >= 0 && col < 8 && ChessBoard[row - 1][col].type == -1) {
+                            Move[row - 1][col] = TRUE;
+                        }
+                        if (row - 1 >= 0 && row - 1 < 8 && col - 1 >= 0 && col - 1 < 8 && ChessBoard[row - 1][col - 1].type != -1 && ChessBoard[row - 1][col - 1].color != 1) {
+                            Attack[row - 1][col - 1] = TRUE;
+                        }
+                        if (row - 1 >= 0 && row - 1 < 8 && col + 1 >= 0 && col + 1 < 8 && ChessBoard[row - 1][col + 1].type != -1 && ChessBoard[row - 1][col + 1].color != 1) {
+                            Attack[row - 1][col + 1] = TRUE;
+                        }
+                    }
+                    if (row == 3) {
+                        if (col - 1 >= 0 && col - 1 == pawnTwo) {
+                            if (ChessBoard[3][col - 1].type == 0 && ChessBoard[3][col - 1].color == -1 && ChessBoard[2][col - 1].type == -1) {
+                                Move[2][col - 1] = TRUE;
+                                Attack[3][col - 1] = TRUE;
+                            }
+                        }
+                        if (col + 1 < 8 && col + 1 == pawnTwo) {
+                            if (ChessBoard[3][col + 1].type == 0 && ChessBoard[3][col + 1].color == -1 && ChessBoard[2][col + 1].type == -1) {
+                                Move[2][col + 1] = TRUE;
+                                Attack[3][col + 1] = TRUE;
+                            }
+                        }
+                    }
+                    break;
+                }
+                clickCol = col;
+                clickRow = row;
+                currentRow = row;
+                currentCol = col;
+            }
+            else if (turn == -1 && ChessBoard[row][col].color == -1) {
+                for (int r = 0;r < 8;r++) {
+                    for (int c = 0;c < 8;c++) {
+                        Move[r][c] = FALSE;
+                        Attack[r][c] = FALSE;
+                    }
+                }
+                switch (ChessBoard[row][col].type) {
+                case 0:
+                    if (ChessBoard[row][col].ismoved == 0) {
+                        if (row + 2 >= 0 && row + 2 < 8 && col >= 0 && col < 8 && ChessBoard[row + 2][col].type == -1 && ChessBoard[row + 1][col].type == -1) {
+                            Move[row + 2][col] = TRUE;
+                            Move[row + 1][col] = TRUE;
+                        }
+                        else if (row + 1 >= 0 && row + 1 < 8 && col >= 0 && col < 8 && ChessBoard[row + 1][col].type == -1) {
+                            Move[row + 1][col] = TRUE;
+                        }
+                        if (row + 1 >= 0 && row + 1 < 8 && col - 1 >= 0 && col - 1 < 8 && ChessBoard[row + 1][col - 1].type != -1 && ChessBoard[row + 1][col - 1].color != -1) {
+                            Attack[row + 1][col - 1] = TRUE;
+                        }
+                        if (row + 1 >= 0 && row + 1 < 8 && col + 1 >= 0 && col + 1 < 8 && ChessBoard[row + 1][col + 1].type != -1 && ChessBoard[row + 1][col + 1].color != -1) {
+                            Attack[row + 1][col + 1] = TRUE;
+                        }
+                    }
+                    else {
+                        if (row + 1 >= 0 && row + 1 < 8 && col >= 0 && col < 8 && ChessBoard[row + 1][col].type == -1) {
+                            Move[row + 1][col] = TRUE;
+                        }
+                        if (row + 1 >= 0 && row + 1 < 8 && col - 1 >= 0 && col - 1 < 8 && ChessBoard[row + 1][col - 1].type != -1 && ChessBoard[row + 1][col - 1].color != -1) {
+                            Attack[row + 1][col - 1] = TRUE;
+                        }
+                        if (row + 1 >= 0 && row + 1 < 8 && col + 1 >= 0 && col + 1 < 8 && ChessBoard[row + 1][col + 1].type != -1 && ChessBoard[row + 1][col + 1].color != -1) {
+                            Attack[row + 1][col + 1] = TRUE;
+                        }
+                    }
+                    if (row == 4) {
+                        if (col - 1 >= 0 && col - 1 == pawnTwo) {
+                            if (ChessBoard[4][col - 1].type == 0 && ChessBoard[4][col - 1].color == -1) {
+                                Move[5][col - 1] = TRUE;
+                                Attack[4][col - 1] = TRUE;
+                            }
+                        }
+                        if (col + 1 < 8 && col + 1 == pawnTwo) {
+                            if (ChessBoard[4][col + 1].type == 0 && ChessBoard[4][col + 1].color == -1) {
+                                Move[5][col + 1] = TRUE;
+                                Attack[4][col + 1] = TRUE;
+                            }
+                        }
+                    }
+                    break;
+                }
+                clickCol = col;
+                clickRow = row;
+                currentRow = row;
+                currentCol = col;
+            }
         }
+        InvalidateRect(hWnd, NULL, FALSE);
+        UpdateWindow(hWnd);
     }
     break;
     case WM_PAINT:
@@ -200,7 +353,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             // TODO: 在此新增任何使用 hdc 的繪圖程式碼...
             HBRUSH Light = CreateSolidBrush(RGB(238, 238, 210)); // white board
             HBRUSH Dark = CreateSolidBrush(RGB(118, 150, 86)); // green board
-            HPEN click = CreatePen(PS_SOLID, 3.9, RGB(255, 255, 0));
+            HPEN click = CreatePen(PS_SOLID, 3, RGB(255, 255, 0));
+            HPEN move = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
+            HPEN attack = CreatePen(PS_SOLID, 3, RGB(255, 0, 0));
+            HBRUSH hHollowBrush = (HBRUSH)GetStockObject(HOLLOW_BRUSH);
+            HBRUSH Black = CreateSolidBrush(RGB(0, 0, 0));
             SetBkMode(hdc, TRANSPARENT); 
             LOGFONT lf = { 0 };// initialization
             lf.lfHeight = 80; // set font size
@@ -214,7 +371,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     rect.right = c * BoardSize + BoardSize;
                     rect.bottom = r * BoardSize + BoardSize;
                     if (clickRow == r && clickCol == c) {
-                        if (ChessBoard[clickRow][clickCol] != -1) {
+                        if (ChessBoard[clickRow][clickCol].type != -1) {
                             if ((r + c) % 2 == 0) {
                                 SelectObject(hdc, Light);
                             }
@@ -241,42 +398,54 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                             FillRect(hdc, &rect, Dark);
                         }
                     }
-                    switch (ChessBoard[r][c]) {
-                        case 7:
-                            DrawText(hdc, L"♜", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-                            break;
-                        case 8:
-                            DrawText(hdc, L"♞", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-                            break;
-                        case 9:
-                            DrawText(hdc, L"♝", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-                            break;
-                        case 10:
-                            DrawText(hdc, L"♛", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-                            break;
-                        case 11:
-                            DrawText(hdc, L"♚", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-                            break;
-                        case 6:
-                            DrawText(hdc, L"♟", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-                            break;
+                    switch (ChessBoard[r][c].type) {
                         case 0:
-                            DrawText(hdc, L"♙", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                            if (ChessBoard[r][c].color == -1) {
+                                DrawText(hdc, L"♟", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                            }
+                            else {
+                                DrawText(hdc, L"♙", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                            }
                             break;
                         case 1:
-                            DrawText(hdc, L"♖", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                            if (ChessBoard[r][c].color == -1) {
+                                DrawText(hdc, L"♜", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                            }
+                            else {
+                                DrawText(hdc, L"♖", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                            }
                             break;
                         case 2:
-                            DrawText(hdc, L"♘", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                            if (ChessBoard[r][c].color == -1) {
+                                DrawText(hdc, L"♞", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                            }
+                            else {
+                                DrawText(hdc, L"♘", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                            }
                             break;
                         case 3:
-                            DrawText(hdc, L"♗", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                            if (ChessBoard[r][c].color == -1) {
+                                DrawText(hdc, L"♝", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                            }
+                            else {
+                                DrawText(hdc, L"♗", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                            }
                             break;
                         case 4:
-                            DrawText(hdc, L"♕", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                            if (ChessBoard[r][c].color == -1) {
+                                DrawText(hdc, L"♛", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                            }
+                            else {
+                                DrawText(hdc, L"♕", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                            }
                             break;
                         case 5:
-                            DrawText(hdc, L"♔", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                            if (ChessBoard[r][c].color == -1) {
+                                DrawText(hdc, L"♚", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                            }
+                            else {
+                                DrawText(hdc, L"♔", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                            }
                             break;
                         case -1:
                             DrawText(hdc, L"", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
@@ -284,10 +453,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     }
                 }
             } // create chess board
+            for (int r = 0;r < 8;r++) {
+                for (int c = 0;c < 8;c++) {
+                    int left = (c * BoardSize) + (BoardSize / 2);
+                    int top = (r * BoardSize) + (BoardSize / 2);
+                    int right = (c * BoardSize) + (BoardSize / 2);
+                    int bottom = (r * BoardSize) + (BoardSize / 2);
+                    if (Move[r][c] == TRUE) {
+                        SelectObject(hdc, Black);
+                        SelectObject(hdc, move);
+                        Ellipse(hdc, left + 7, top + 7, right - 7, bottom - 7);
+                    }
+                    if (Attack[r][c] == TRUE) {
+                        SelectObject(hdc, attack);
+                        SelectObject(hdc, hHollowBrush);
+                        Ellipse(hdc, left + 39, top + 39, right - 39, bottom - 39);
+                    }
+                }
+            }
             DeleteObject(Light); // release memory
             DeleteObject(Dark); 
             DeleteObject(click);
+            DeleteObject(Black);
             DeleteObject(chess);
+            DeleteObject(move);
             EndPaint(hWnd, &ps);
         }
         break;

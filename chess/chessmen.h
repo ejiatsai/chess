@@ -1,8 +1,12 @@
 #pragma once
 
+typedef struct Chess {
+	int type;
+	int color;
+	int ismoved;
+}Chess;
+
 class chessmen {
 	public:
-		virtual ~chessmen() {};
-		virtual void move() = 0;
-		virtual void attack() = 0;
+		void move(Chess(&chessboard)[8][8], int currentCol, int currentRow, int clickCol, int clickRow);
 };

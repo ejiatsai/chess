@@ -237,7 +237,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     }
                 }
                 switch (ChessBoard[row][col].type) {
-                case 0:
+                case 0: // pawn
                     if (ChessBoard[row][col].ismoved == 0) {
                         if (row - 2 >= 0 && row - 2 < 8 && col >= 0 && col < 8 && ChessBoard[row - 2][col].type == -1 && ChessBoard[row - 1][col].type == -1) {
                             Move[row - 2][col] = TRUE;
@@ -279,68 +279,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                         }
                     }
                     break;
-                case 1:
-                    for (int r = row - 1;0 <= r && r < 8;r--) {
-                        if (ChessBoard[r][col].type == -1) {
-                            Move[r][col] = TRUE;
-                        }
-                        else {
-                            if (ChessBoard[r][col].color != 1) {
-                                Attack[r][col] = TRUE;
-                                break;
+                case 1: //rook
+                    for (int i = 0;i < 4;i++) {
+                        int dr[4] = { 1,-1,0,0 };
+                        int dc[4] = { 0,0,1,-1 };
+                        for (int r = row + dr[i], c = col + dc[i];r >= 0 && r < 8 && c >= 0 && c < 8;r += dr[i], c += dc[i]) {
+                            if (ChessBoard[r][c].type == -1) {
+                                Move[r][c] = TRUE;
                             }
                             else {
-                                break;
+                                if (ChessBoard[r][c].color != 1) {
+                                    Attack[r][c] = TRUE;
+                                    break;
+                                }
+                                else {
+                                    break;
+                                }
                             }
                         }
-                    }// top
-                    for (int r = row + 1;0 <= r && r < 8;r++) {
-                        if (ChessBoard[r][col].type == -1) {
-                            Move[r][col] = TRUE;
-                        }
-                        else {
-                            if (ChessBoard[r][col].color != 1) {
-                                Attack[r][col] = TRUE;
-                                break;
-                            }
-                            else {
-                                break;
-                            }
-                        }
-                    }// bottom
-                    for (int c = col + 1;0 <= c && c < 8;c++) {
-                        if (ChessBoard[row][c].type == -1) {
-                            Move[row][c] = TRUE;
-                        }
-                        else {
-                            if (ChessBoard[row][c].color != 1) {
-                                Attack[row][c] = TRUE;
-                                break;
-                            }
-                            else {
-                                break;
-                            }
-                        }
-                    }// right
-                    for (int c = col - 1;0 <= c && c < 8;c--) {
-                        if (ChessBoard[row][c].type == -1) {
-                            Move[row][c] = TRUE;
-                        }
-                        else {
-                            if (ChessBoard[row][c].color != 1) {
-                                Attack[row][c] = TRUE;
-                                break;
-                            }
-                            else {
-                                break;
-                            }
-                        }
-                    }// left
+                    }
                     break;
-                case 2:
-                    int dr[8] = { -2,-2,-1,1,2,2,1,-1 };
-                    int dc[8] = { 1,-1,2,2,1,-1,-2,-2 };
+                case 2: // kinght
                     for (int i = 0;i < 8;i++) {
+                        int dr[8] = { -2,-2,-1,1,2,2,1,-1 };
+                        int dc[8] = { 1,-1,2,2,1,-1,-2,-2 };
                         int moveR = row + dr[i];
                         int moveC = col + dc[i];
                         if (moveR >= 0 && moveR < 8 && moveC >= 0 && moveC < 8) {
@@ -349,6 +311,46 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                             }
                             else if (ChessBoard[moveR][moveC].color != 1) {
                                 Attack[moveR][moveC] = TRUE;
+                            }
+                        }
+                    }
+                    break;
+                case 3: // bishop
+                    for (int i = 0;i < 4;i++) {
+                        int dr[4] = { 1,1,-1,-1 };
+                        int dc[4] = { 1,-1,1,-1 };
+                        for (int r = row + dr[i], c = col + dc[i];r >= 0 && r < 8 && c >= 0 && c < 8;r += dr[i], c += dc[i]) {
+                            if (ChessBoard[r][c].type == -1) {
+                                Move[r][c] = TRUE;
+                            }
+                            else {
+                                if (ChessBoard[r][c].color != 1) {
+                                    Attack[r][c] = TRUE;
+                                    break;
+                                }
+                                else {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    break;
+                case 4: // queen
+                    for (int i = 0;i < 8;i++) {
+                        int dr[8] = { 1,1,-1,-1,1,-1,0,0 };
+                        int dc[8] = { 1,-1,1,-1,0,0,1,-1 };
+                        for (int r = row + dr[i], c = col + dc[i];r >= 0 && r < 8 && c >= 0 && c < 8;r += dr[i], c += dc[i]) {
+                            if (ChessBoard[r][c].type == -1) {
+                                Move[r][c] = TRUE;
+                            }
+                            else {
+                                if (ChessBoard[r][c].color != 1) {
+                                    Attack[r][c] = TRUE;
+                                    break;
+                                }
+                                else {
+                                    break;
+                                }
                             }
                         }
                     }
@@ -367,7 +369,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     }
                 }
                 switch (ChessBoard[row][col].type) {
-                case 0:
+                case 0: // pawn
                     if (ChessBoard[row][col].ismoved == 0) {
                         if (row + 2 >= 0 && row + 2 < 8 && col >= 0 && col < 8 && ChessBoard[row + 2][col].type == -1 && ChessBoard[row + 1][col].type == -1) {
                             Move[row + 2][col] = TRUE;
@@ -409,68 +411,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                         }
                     }
                     break;
-                case 1:
-                    for (int r = row - 1;0 <= r && r < 8;r--) {
-                        if (ChessBoard[r][col].type == -1) {
-                            Move[r][col] = TRUE;
-                        }
-                        else {
-                            if (ChessBoard[r][col].color != -1) {
-                                Attack[r][col] = TRUE;
-                                break;
+                case 1: // rook
+                    for (int i = 0;i < 4;i++) {
+                        int dr[4] = { 1,-1,0,0 };
+                        int dc[4] = { 0,0,1,-1 };
+                        for (int r = row + dr[i], c = col + dc[i];r >= 0 && r < 8 && c >= 0 && c < 8;r += dr[i], c += dc[i]) {
+                            if (ChessBoard[r][c].type == -1) {
+                                Move[r][c] = TRUE;
                             }
                             else {
-                                break;
+                                if (ChessBoard[r][c].color != -1) {
+                                    Attack[r][c] = TRUE;
+                                    break;
+                                }
+                                else {
+                                    break;
+                                }
                             }
                         }
-                    }// top
-                    for (int r = row + 1;0 <= r && r < 8;r++) {
-                        if (ChessBoard[r][col].type == -1) {
-                            Move[r][col] = TRUE;
-                        }
-                        else {
-                            if (ChessBoard[r][col].color != -1) {
-                                Attack[r][col] = TRUE;
-                                break;
-                            }
-                            else {
-                                break;
-                            }
-                        }
-                    }// bottom
-                    for (int c = col + 1;0 <= c && c < 8;c++) {
-                        if (ChessBoard[row][c].type == -1) {
-                            Move[row][c] = TRUE;
-                        }
-                        else {
-                            if (ChessBoard[row][c].color != -1) {
-                                Attack[row][c] = TRUE;
-                                break;
-                            }
-                            else {
-                                break;
-                            }
-                        }
-                    }// right
-                    for (int c = col - 1;0 <= c && c < 8;c--) {
-                        if (ChessBoard[row][c].type == -1) {
-                            Move[row][c] = TRUE;
-                        }
-                        else {
-                            if (ChessBoard[row][c].color != -1) {
-                                Attack[row][c] = TRUE;
-                                break;
-                            }
-                            else {
-                                break;
-                            }
-                        }
-                    }// left
+                    }
                     break;
-                case 2:
-                    int dr[8] = { -2,-2,-1,1,2,2,1,-1 };
-                    int dc[8] = { 1,-1,2,2,1,-1,-2,-2 };
+                case 2: // kinght
                     for (int i = 0;i < 8;i++) {
+                        int dr[8] = { -2,-2,-1,1,2,2,1,-1 };
+                        int dc[8] = { 1,-1,2,2,1,-1,-2,-2 };
                         int moveR = row + dr[i];
                         int moveC = col + dc[i];
                         if (moveR >= 0 && moveR < 8 && moveC >= 0 && moveC < 8) {
@@ -479,6 +443,46 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                             }
                             else if (ChessBoard[moveR][moveC].color != -1) {
                                 Attack[moveR][moveC] = TRUE;
+                            }
+                        }
+                    }
+                    break;
+                case 3: // bishop
+                    for (int i = 0;i < 4;i++) {
+                        int dr[4] = { 1,1,-1,-1 };
+                        int dc[4] = { 1,-1,1,-1 };
+                        for (int r = row + dr[i], c = col + dc[i];r >= 0 && r < 8 && c >= 0 && c < 8;r += dr[i], c += dc[i]) {
+                            if (ChessBoard[r][c].type == -1) {
+                                Move[r][c] = TRUE;
+                            }
+                            else {
+                                if (ChessBoard[r][c].color != -1) {
+                                    Attack[r][c] = TRUE;
+                                    break;
+                                }
+                                else {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    break;
+                case 4: // queen
+                    for (int i = 0;i < 8;i++) {
+                        int dr[8] = { 1,1,-1,-1,1,-1,0,0 };
+                        int dc[8] = { 1,-1,1,-1,0,0,1,-1 };
+                        for (int r = row + dr[i], c = col + dc[i];r >= 0 && r < 8 && c >= 0 && c < 8;r += dr[i], c += dc[i]) {
+                            if (ChessBoard[r][c].type == -1) {
+                                Move[r][c] = TRUE;
+                            }
+                            else {
+                                if (ChessBoard[r][c].color != -1) {
+                                    Attack[r][c] = TRUE;
+                                    break;
+                                }
+                                else {
+                                    break;
+                                }
                             }
                         }
                     }

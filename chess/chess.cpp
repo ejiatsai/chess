@@ -7,7 +7,6 @@
 #include <windowsx.h>
 
 #define MAX_LOADSTRING 100
-#define BoardSize 80 // chess board size
 // 全域變數:
 HINSTANCE hInst;                                // 目前執行個體
 WCHAR szTitle[MAX_LOADSTRING];                  // 標題列文字
@@ -18,6 +17,7 @@ static int currentCol = -1;
 static int currentRow = -1;
 static int turn = 1;
 static int pawnTwo = -1;
+static int BoardSize = 80;
 /* record the user click position
 */
 bool Move[8][8] = { FALSE };
@@ -173,6 +173,41 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
         }
         break;
+    case WM_CREATE: 
+        {
+        int screenWidth = GetSystemMetrics(SM_CXSCREEN);
+        int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+        BoardSize = screenHeight / 8;
+        SetMenu(hWnd, NULL);
+        SetWindowLongPtr(hWnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
+        SetWindowPos(hWnd, HWND_TOP, 0, 0, screenWidth, screenHeight, SWP_FRAMECHANGED);
+        return 0;
+        }
+        break;
+    case WM_KEYDOWN:
+    {
+        if (wParam == VK_ESCAPE) {
+            DestroyWindow(hWnd);
+        }
+    }
+    break;
+    case WM_RBUTTONDOWN:
+    {
+        for (int r = 0;r < 8;r++) {
+            for (int c = 0;c < 8;c++) {
+                Move[r][c] = FALSE;
+                Attack[r][c] = FALSE;
+            }
+        }
+        currentCol = -1;
+        currentRow = -1;
+        clickCol = -1;
+        clickRow = -1;
+        InvalidateRect(hWnd, NULL, FALSE);
+        UpdateWindow(hWnd);
+
+    }
+    break;
     case WM_LBUTTONDOWN: 
     {
         int xPos = GET_X_LPARAM(lParam);
@@ -510,10 +545,36 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             HPEN attack = CreatePen(PS_SOLID, 3, RGB(255, 0, 0));
             HBRUSH hHollowBrush = (HBRUSH)GetStockObject(HOLLOW_BRUSH);
             HBRUSH Black = CreateSolidBrush(RGB(0, 0, 0));
-            SetBkMode(hdc, TRANSPARENT); 
+            SetBkMode(hdc, TRANSPARENT);
             LOGFONT lf = { 0 };// initialization
-            lf.lfHeight = 80; // set font size
+            lf.lfHeight = BoardSize; // set font size
+            LOGFONT ro = { 0 };
+            ro.lfHeight = BoardSize / 2;
+            LOGFONT cl = { 0 };
+            cl.lfHeight = BoardSize / 5;
+            HFONT close = CreateFontIndirect(&cl);
+            HFONT round = CreateFontIndirect(&ro);
             HFONT chess = CreateFontIndirect(&lf); // create font
+            RECT R;
+            R.left = 9 * BoardSize;
+            R.top = 0 * BoardSize;
+            R.right = 12 * BoardSize;
+            R.bottom = 1 * BoardSize;
+            SelectObject(hdc, round);
+            FillRect(hdc, &R, (HBRUSH)(COLOR_WINDOW + 1));
+            if (turn == 1) {
+                DrawText(hdc, L"Round:White", -1, &R, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+            }
+            else {
+                DrawText(hdc, L"Round:Black", -1, &R, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+            }
+            SelectObject(hdc, close);
+            RECT C;
+            C.left = 11 * BoardSize;
+            C.top = 7 * BoardSize;
+            C.right = 13 * BoardSize;
+            C.bottom = 8 * BoardSize;
+            DrawText(hdc, L"Press ESC to close", -1, &C, DT_CENTER | DT_BOTTOM | DT_SINGLELINE);
             SelectObject(hdc, chess);
             for (int r = 0;r < 8;r++) {
                 for (int c = 0;c < 8;c++) {
@@ -614,12 +675,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     if (Move[r][c] == TRUE) {
                         SelectObject(hdc, Black);
                         SelectObject(hdc, move);
-                        Ellipse(hdc, left + 7, top + 7, right - 7, bottom - 7);
+                        Ellipse(hdc, left + 10, top + 10, right - 10, bottom - 10);
                     }
                     if (Attack[r][c] == TRUE) {
                         SelectObject(hdc, attack);
                         SelectObject(hdc, hHollowBrush);
-                        Ellipse(hdc, left + 39, top + 39, right - 39, bottom - 39);
+                        Ellipse(hdc, left + ((BoardSize / 2) + 1), top + ((BoardSize / 2) + 1), right - ((BoardSize / 2) + 1), bottom - ((BoardSize / 2) + 1));
                     }
                 }
             }
@@ -629,6 +690,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             DeleteObject(Black);
             DeleteObject(chess);
             DeleteObject(move);
+            DeleteObject(attack);
+            DeleteObject(round);
             EndPaint(hWnd, &ps);
         }
         break;

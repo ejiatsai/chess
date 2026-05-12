@@ -4,6 +4,7 @@
 #include "framework.h"
 #include "chess.h"
 #include "chessmen.h"
+#include "resource.h"
 #include <windowsx.h>
 
 #define MAX_LOADSTRING 100
@@ -22,6 +23,28 @@ static int BoardSize = 80;
 */
 bool Move[8][8] = { FALSE };
 bool Attack[8][8] = { FALSE };
+int WhiteKing[8][8] = {
+    {0,0,0,0,1,0,0,0},
+    {0,0,0,0,0,0,0,0},
+    {0,0,0,0,0,0,0,0},
+    {0,0,0,0,0,0,0,0},
+    {0,0,0,0,0,0,0,0},
+    {0,0,0,0,0,0,0,0},
+    {0,0,0,0,0,0,0,0},
+    {0,0,0,0,0,0,0,0},
+};
+
+int BlackKing[8][8] = {
+    {0,0,0,0,0,0,0,0},
+    {0,0,0,0,0,0,0,0},
+    {0,0,0,0,0,0,0,0},
+    {0,0,0,0,0,0,0,0},
+    {0,0,0,0,0,0,0,0},
+    {0,0,0,0,0,0,0,0},
+    {0,0,0,0,0,0,0,0},
+    {0,0,0,0,1,0,0,0},
+};
+
 
 Chess ChessBoard[8][8] = {
     { {1, -1, 0}, {2, -1, 0}, {3, -1, 0}, {4, -1, 0}, {5, -1, 0}, {3, -1, 0}, {2, -1, 0}, {1, -1, 0} },
@@ -152,6 +175,34 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 //
 
+INT_PTR CALLBACK Promotion(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lparam) {
+    switch (uMsg) {
+    case WM_INITDIALOG:
+        return true;
+        break;
+    case WM_COMMAND:
+        switch (LOWORD(wParam)) {
+        case IDC_BTN_ROOK:
+            EndDialog(hwndDlg, 1);
+            return TRUE;
+        case IDC_BTN_KNIGHT:
+            EndDialog(hwndDlg, 2);
+            return TRUE;
+        case IDC_BTN_BISHOP:
+            EndDialog(hwndDlg, 3);
+            return TRUE;
+        case IDC_BTN_QUEEN:
+            EndDialog(hwndDlg, 4);
+            return TRUE;
+        case IDCANCEL:
+            EndDialog(hwndDlg, 4);
+            return TRUE;
+        }
+        break;
+    }
+    return FALSE;
+}
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
@@ -232,6 +283,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     }
                     if (!Moved && currentRow != row) {
                         chessmove.move(ChessBoard, currentCol, currentRow, col, row);
+                        if (row == 0) {
+                            int promotionPiece = DialogBox(hInst, MAKEINTRESOURCE(IDD_PROMOTION), hWnd, Promotion);
+                            ChessBoard[row][col] = { promotionPiece,1,0 };
+                        }
+                        else if (row == 7) {
+                            int promotionPiece = DialogBox(hInst, MAKEINTRESOURCE(IDD_PROMOTION), hWnd, Promotion);
+                            ChessBoard[row][col] = { promotionPiece,-1,0 };
+                        }
                         if (abs(currentRow - row) == 2) {
                             pawnTwo = col;
                         }

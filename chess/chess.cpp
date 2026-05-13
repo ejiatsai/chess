@@ -23,28 +23,6 @@ static int BoardSize = 80;
 */
 bool Move[8][8] = { FALSE };
 bool Attack[8][8] = { FALSE };
-int WhiteKing[8][8] = {
-    {0,0,0,0,1,0,0,0},
-    {0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0},
-};
-
-int BlackKing[8][8] = {
-    {0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0},
-    {0,0,0,0,1,0,0,0},
-};
-
 
 Chess ChessBoard[8][8] = {
     { {1, -1, 0}, {2, -1, 0}, {3, -1, 0}, {4, -1, 0}, {5, -1, 0}, {3, -1, 0}, {2, -1, 0}, {1, -1, 0} },
@@ -175,7 +153,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 //
 
-INT_PTR CALLBACK Promotion(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lparam) {
+INT_PTR CALLBACK Promotion(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
     case WM_INITDIALOG:
         return true;
@@ -268,6 +246,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (col >= 0 && col < 8 && row >= 0 && row < 8) {
             if (Move[row][col] == TRUE || Attack[row][col] == TRUE) {
                 bool Moved = FALSE;
+                bool promotion = FALSE;
+                int p = 0;
                 if (ChessBoard[currentRow][currentCol].type == 0) {
                     if (currentCol != col && currentRow != row && ChessBoard[row][col].type == -1 && col == pawnTwo) {
                         if (row == 2 && Attack[3][col] == TRUE) {
@@ -284,12 +264,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     if (!Moved && currentRow != row) {
                         chessmove.move(ChessBoard, currentCol, currentRow, col, row);
                         if (row == 0) {
-                            int promotionPiece = DialogBox(hInst, MAKEINTRESOURCE(IDD_PROMOTION), hWnd, Promotion);
-                            ChessBoard[row][col] = { promotionPiece,1,0 };
+                            promotion = TRUE;
+                            p = 1;
                         }
                         else if (row == 7) {
-                            int promotionPiece = DialogBox(hInst, MAKEINTRESOURCE(IDD_PROMOTION), hWnd, Promotion);
-                            ChessBoard[row][col] = { promotionPiece,-1,0 };
+                            promotion = TRUE;
+                            p = -1;
                         }
                         if (abs(currentRow - row) == 2) {
                             pawnTwo = col;
@@ -322,6 +302,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     }
                     turn *= -1;
                 }
+                InvalidateRect(hWnd, NULL, FALSE);
+                UpdateWindow(hWnd);
+                if (promotion) {
+                    int promotionPiece = DialogBox(hInst, MAKEINTRESOURCE(IDD_PROMOTION), hWnd, Promotion);
+                    ChessBoard[row][col] = { promotionPiece,p,0 };
+                }
             }
             if (turn == 1 && ChessBoard[row][col].color == 1) {
                 for (int r = 0;r < 8;r++) {
@@ -332,6 +318,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 }
                 switch (ChessBoard[row][col].type) {
                 case 0: // pawn
+                {
                     if (ChessBoard[row][col].ismoved == 0) {
                         if (row - 2 >= 0 && row - 2 < 8 && col >= 0 && col < 8 && ChessBoard[row - 2][col].type == -1 && ChessBoard[row - 1][col].type == -1) {
                             Move[row - 2][col] = TRUE;
@@ -372,11 +359,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                             }
                         }
                     }
+                }
                     break;
                 case 1: //rook
+                {
+                    int dr[4] = { 1,-1,0,0 };
+                    int dc[4] = { 0,0,1,-1 };
                     for (int i = 0;i < 4;i++) {
-                        int dr[4] = { 1,-1,0,0 };
-                        int dc[4] = { 0,0,1,-1 };
                         for (int r = row + dr[i], c = col + dc[i];r >= 0 && r < 8 && c >= 0 && c < 8;r += dr[i], c += dc[i]) {
                             if (ChessBoard[r][c].type == -1) {
                                 Move[r][c] = TRUE;
@@ -392,11 +381,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                             }
                         }
                     }
+                }
                     break;
                 case 2: // kinght
+                {
+                    int dr[8] = { -2,-2,-1,1,2,2,1,-1 };
+                    int dc[8] = { 1,-1,2,2,1,-1,-2,-2 };
                     for (int i = 0;i < 8;i++) {
-                        int dr[8] = { -2,-2,-1,1,2,2,1,-1 };
-                        int dc[8] = { 1,-1,2,2,1,-1,-2,-2 };
                         int moveR = row + dr[i];
                         int moveC = col + dc[i];
                         if (moveR >= 0 && moveR < 8 && moveC >= 0 && moveC < 8) {
@@ -408,11 +399,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                             }
                         }
                     }
+                }
                     break;
                 case 3: // bishop
+                {
+                    int dr[4] = { 1,1,-1,-1 };
+                    int dc[4] = { 1,-1,1,-1 };
                     for (int i = 0;i < 4;i++) {
-                        int dr[4] = { 1,1,-1,-1 };
-                        int dc[4] = { 1,-1,1,-1 };
                         for (int r = row + dr[i], c = col + dc[i];r >= 0 && r < 8 && c >= 0 && c < 8;r += dr[i], c += dc[i]) {
                             if (ChessBoard[r][c].type == -1) {
                                 Move[r][c] = TRUE;
@@ -428,11 +421,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                             }
                         }
                     }
+                }
                     break;
                 case 4: // queen
+                {
+                    int dr[8] = { 1,1,-1,-1,1,-1,0,0 };
+                    int dc[8] = { 1,-1,1,-1,0,0,1,-1 };
                     for (int i = 0;i < 8;i++) {
-                        int dr[8] = { 1,1,-1,-1,1,-1,0,0 };
-                        int dc[8] = { 1,-1,1,-1,0,0,1,-1 };
                         for (int r = row + dr[i], c = col + dc[i];r >= 0 && r < 8 && c >= 0 && c < 8;r += dr[i], c += dc[i]) {
                             if (ChessBoard[r][c].type == -1) {
                                 Move[r][c] = TRUE;
@@ -448,6 +443,36 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                             }
                         }
                     }
+                }
+                    break;
+                case 5: // king
+                {
+                    int dr[8] = { 1,1,-1,-1,1,-1,0,0 };
+                    int dc[8] = { 1,-1,1,-1,0,0,1,-1 };
+                    for (int i = 0;i < 8;i++) {
+                        int moveR = row + dr[i];
+                        int moveC = col + dc[i];
+                        bool isKing = FALSE;
+                        if (moveR >= 0 && moveR < 8 && moveC >= 0 && moveC < 8) {
+                            for (int j = 0;j < 8;j++) {
+                                int kR = moveR + dr[j];
+                                int kC = moveC + dc[j];
+                                if (kR >= 0 && kR < 8 && kC >= 0 && kC < 8) {
+                                    if (ChessBoard[kR][kC].type == 5 && ChessBoard[kR][kC].color == -1) {
+                                        isKing = TRUE;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (ChessBoard[moveR][moveC].type == -1 && isKing == FALSE) {
+                                Move[moveR][moveC] = TRUE;
+                            }
+                            else if (ChessBoard[moveR][moveC].color != 1 && isKing == FALSE) {
+                                Attack[moveR][moveC] = TRUE;
+                            }
+                        }
+                    }
+                }
                     break;
                 }
                 clickCol = col;
@@ -464,6 +489,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 }
                 switch (ChessBoard[row][col].type) {
                 case 0: // pawn
+                {
                     if (ChessBoard[row][col].ismoved == 0) {
                         if (row + 2 >= 0 && row + 2 < 8 && col >= 0 && col < 8 && ChessBoard[row + 2][col].type == -1 && ChessBoard[row + 1][col].type == -1) {
                             Move[row + 2][col] = TRUE;
@@ -504,11 +530,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                             }
                         }
                     }
+                }
                     break;
                 case 1: // rook
+                {
+                    int dr[4] = { 1,-1,0,0 };
+                    int dc[4] = { 0,0,1,-1 };
                     for (int i = 0;i < 4;i++) {
-                        int dr[4] = { 1,-1,0,0 };
-                        int dc[4] = { 0,0,1,-1 };
                         for (int r = row + dr[i], c = col + dc[i];r >= 0 && r < 8 && c >= 0 && c < 8;r += dr[i], c += dc[i]) {
                             if (ChessBoard[r][c].type == -1) {
                                 Move[r][c] = TRUE;
@@ -524,11 +552,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                             }
                         }
                     }
+                }
                     break;
                 case 2: // kinght
+                {
+                    int dr[8] = { -2,-2,-1,1,2,2,1,-1 };
+                    int dc[8] = { 1,-1,2,2,1,-1,-2,-2 };
                     for (int i = 0;i < 8;i++) {
-                        int dr[8] = { -2,-2,-1,1,2,2,1,-1 };
-                        int dc[8] = { 1,-1,2,2,1,-1,-2,-2 };
                         int moveR = row + dr[i];
                         int moveC = col + dc[i];
                         if (moveR >= 0 && moveR < 8 && moveC >= 0 && moveC < 8) {
@@ -540,11 +570,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                             }
                         }
                     }
+                }
                     break;
                 case 3: // bishop
+                {
+                    int dr[4] = { 1,1,-1,-1 };
+                    int dc[4] = { 1,-1,1,-1 };
                     for (int i = 0;i < 4;i++) {
-                        int dr[4] = { 1,1,-1,-1 };
-                        int dc[4] = { 1,-1,1,-1 };
                         for (int r = row + dr[i], c = col + dc[i];r >= 0 && r < 8 && c >= 0 && c < 8;r += dr[i], c += dc[i]) {
                             if (ChessBoard[r][c].type == -1) {
                                 Move[r][c] = TRUE;
@@ -560,11 +592,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                             }
                         }
                     }
+                }
                     break;
                 case 4: // queen
+                {
+                    int dr[8] = { 1,1,-1,-1,1,-1,0,0 };
+                    int dc[8] = { 1,-1,1,-1,0,0,1,-1 };
                     for (int i = 0;i < 8;i++) {
-                        int dr[8] = { 1,1,-1,-1,1,-1,0,0 };
-                        int dc[8] = { 1,-1,1,-1,0,0,1,-1 };
                         for (int r = row + dr[i], c = col + dc[i];r >= 0 && r < 8 && c >= 0 && c < 8;r += dr[i], c += dc[i]) {
                             if (ChessBoard[r][c].type == -1) {
                                 Move[r][c] = TRUE;
@@ -580,6 +614,36 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                             }
                         }
                     }
+                }
+                    break;
+                case 5: // king
+                {
+                    int dr[8] = { 1,1,-1,-1,1,-1,0,0 };
+                    int dc[8] = { 1,-1,1,-1,0,0,1,-1 };
+                    for (int i = 0;i < 8;i++) {
+                        int moveR = row + dr[i];
+                        int moveC = col + dc[i];
+                        bool isKing = FALSE;
+                        if (moveR >= 0 && moveR < 8 && moveC >= 0 && moveC < 8) {
+                            for (int j = 0;j < 8;j++) {
+                                int kR = moveR + dr[j];
+                                int kC = moveC + dc[j];
+                                if (kR >= 0 && kR < 8 && kC >= 0 && kC < 8) {
+                                    if (ChessBoard[kR][kC].type == 5 && ChessBoard[kR][kC].color == 1) {
+                                        isKing = TRUE;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (ChessBoard[moveR][moveC].type == -1 && isKing == FALSE) {
+                                Move[moveR][moveC] = TRUE;
+                            }
+                            else if (ChessBoard[moveR][moveC].color != -1 && isKing == FALSE) {
+                                Attack[moveR][moveC] = TRUE;
+                            }
+                        }
+                    }
+                }
                     break;
                 }
                 clickCol = col;

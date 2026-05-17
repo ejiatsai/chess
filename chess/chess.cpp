@@ -6,6 +6,7 @@
 #include "chessmen.h"
 #include "resource.h"
 #include <windowsx.h>
+#include <vector>
 
 #define MAX_LOADSTRING 100
 // 全域變數:
@@ -181,6 +182,299 @@ INT_PTR CALLBACK Promotion(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
     return FALSE;
 }
 
+bool isBeingAttack(int row, int col) {
+    int dr[8] = { -1,-1,0,1,1,1,0,-1 };
+    int dc[8] = { 0,1,1,1,0,-1,-1,-1 };
+    int kdr[8] = { -2,-2,-1,1,2,2,1,-1 };
+    int kdc[8] = { 1,-1,2,2,1,-1,-2,-2 };
+    for (int i = 0; i < 8; i++) {
+        int r = row + kdr[i];
+        int c = col + kdc[i];
+        if (r >= 0 && r < 8 && c >= 0 && c < 8) {
+            if (ChessBoard[r][c].type == 2 && ChessBoard[r][c].color != turn) {
+                return TRUE;
+            }
+        }
+    }
+    for (int i = 0; i < 8; i++) {
+        int r = row + dr[i];
+        int c = col + dc[i];
+        while (r >= 0 && r < 8 && c >= 0 && c < 8) {
+            if (ChessBoard[r][c].type != -1) {
+                if (ChessBoard[r][c].color != turn) {
+                    int type = ChessBoard[r][c].type;
+                    if (i % 2 == 0 && (type == 1 || type == 4)) {
+                        return TRUE;
+                    }
+                    if (i % 2 != 0 && (type == 3 || type == 4)) {
+                        return TRUE;
+                    }
+                }
+                break;
+            }
+            r += dr[i];
+            c += dc[i];
+        }
+    }
+    int pawnAttackDir = (turn == 1) ? -1 : 1;
+    int pawnRow = row - pawnAttackDir;
+    if (pawnRow >= 0 && pawnRow < 8) {
+        if (col - 1 >= 0 && ChessBoard[pawnRow][col - 1].type == 0 && ChessBoard[pawnRow][col - 1].color != turn) {
+            return TRUE;
+        }
+        if (col + 1 < 8 && ChessBoard[pawnRow][col + 1].type == 0 && ChessBoard[pawnRow][col + 1].color != turn) {
+            return TRUE;
+        }
+    }
+
+    for (int i = 0; i < 8; i++) {
+        int r = row + dr[i];
+        int c = col + dc[i];
+        if (r >= 0 && r < 8 && c >= 0 && c < 8) {
+            if (ChessBoard[r][c].type == 5 && ChessBoard[r][c].color != turn) {
+                return TRUE;
+            }
+        }
+    }
+
+    return FALSE;
+}
+
+bool isAlive(int row,int col) {
+    Chess backup[8][8];
+    memcpy(backup, ChessBoard, sizeof(ChessBoard));
+    auto canMoveAndSurvive = [&](int fromR, int fromC, int toR, int toC, bool enPassant, int epR, int epC) {
+        Chess moved = ChessBoard[fromR][fromC];
+        ChessBoard[fromR][fromC] = { -1,0,0 };
+        ChessBoard[toR][toC] = moved;
+        if (enPassant) {
+            ChessBoard[epR][epC] = { -1,0,0 };
+        }
+        int kingRow = -1;
+        int kingCol = -1;
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+                if (ChessBoard[r][c].type == 5 && ChessBoard[r][c].color == turn) {
+                    kingRow = r;
+                    kingCol = c;
+                    r = 8;
+                    break;
+                }
+            }
+        }
+        bool safe = (kingRow != -1) && !isBeingAttack(kingRow, kingCol);
+        memcpy(ChessBoard, backup, sizeof(ChessBoard));
+        return safe;
+    };
+
+    for (int r = 0; r < 8; r++) {
+        for (int c = 0; c < 8; c++) {
+            if (ChessBoard[r][c].color != turn) {
+                continue;
+            }
+            switch (ChessBoard[r][c].type) {
+            case 0:
+            {
+                int dir = (turn == 1) ? -1 : 1;
+                int forward = r + dir;
+                if (forward >= 0 && forward < 8) {
+                    if (ChessBoard[forward][c].type == -1) {
+                        if (canMoveAndSurvive(r, c, forward, c, false, -1, -1)) {
+                            return TRUE;
+                        }
+                        int forwardTwo = r + (dir * 2);
+                        if (ChessBoard[r][c].ismoved == 0 && forwardTwo >= 0 && forwardTwo < 8 && ChessBoard[forwardTwo][c].type == -1) {
+                            if (canMoveAndSurvive(r, c, forwardTwo, c, false, -1, -1)) {
+                                return TRUE;
+                            }
+                        }
+                    }
+                    if (c - 1 >= 0 && ChessBoard[forward][c - 1].type != -1 && ChessBoard[forward][c - 1].color != turn) {
+                        if (canMoveAndSurvive(r, c, forward, c - 1, false, -1, -1)) {
+                            return TRUE;
+                        }
+                    }
+                    if (c + 1 < 8 && ChessBoard[forward][c + 1].type != -1 && ChessBoard[forward][c + 1].color != turn) {
+                        if (canMoveAndSurvive(r, c, forward, c + 1, false, -1, -1)) {
+                            return TRUE;
+                        }
+                    }
+                }
+                if (turn == 1 && r == 3) {
+                    if (c - 1 >= 0 && c - 1 == pawnTwo) {
+                        if (ChessBoard[3][c - 1].type == 0 && ChessBoard[3][c - 1].color == -1 && ChessBoard[2][c - 1].type == -1) {
+                            if (canMoveAndSurvive(r, c, 2, c - 1, true, 3, c - 1)) {
+                                return TRUE;
+                            }
+                        }
+                    }
+                    if (c + 1 < 8 && c + 1 == pawnTwo) {
+                        if (ChessBoard[3][c + 1].type == 0 && ChessBoard[3][c + 1].color == -1 && ChessBoard[2][c + 1].type == -1) {
+                            if (canMoveAndSurvive(r, c, 2, c + 1, true, 3, c + 1)) {
+                                return TRUE;
+                            }
+                        }
+                    }
+                }
+                if (turn == -1 && r == 4) {
+                    if (c - 1 >= 0 && c - 1 == pawnTwo) {
+                        if (ChessBoard[4][c - 1].type == 0 && ChessBoard[4][c - 1].color == 1 && ChessBoard[5][c - 1].type == -1) {
+                            if (canMoveAndSurvive(r, c, 5, c - 1, true, 4, c - 1)) {
+                                return TRUE;
+                            }
+                        }
+                    }
+                    if (c + 1 < 8 && c + 1 == pawnTwo) {
+                        if (ChessBoard[4][c + 1].type == 0 && ChessBoard[4][c + 1].color == 1 && ChessBoard[5][c + 1].type == -1) {
+                            if (canMoveAndSurvive(r, c, 5, c + 1, true, 4, c + 1)) {
+                                return TRUE;
+                            }
+                        }
+                    }
+                }
+            }
+            break;
+            case 1:
+            {
+                int dr[4] = { 1,-1,0,0 };
+                int dc[4] = { 0,0,1,-1 };
+                for (int i = 0; i < 4; i++) {
+                    for (int rr = r + dr[i], cc = c + dc[i]; rr >= 0 && rr < 8 && cc >= 0 && cc < 8; rr += dr[i], cc += dc[i]) {
+                        if (ChessBoard[rr][cc].type == -1) {
+                            if (canMoveAndSurvive(r, c, rr, cc, false, -1, -1)) {
+                                return TRUE;
+                            }
+                        }
+                        else {
+                            if (ChessBoard[rr][cc].color != turn) {
+                                if (canMoveAndSurvive(r, c, rr, cc, false, -1, -1)) {
+                                    return TRUE;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+            break;
+            case 2:
+            {
+                int dr[8] = { -2,-2,-1,1,2,2,1,-1 };
+                int dc[8] = { 1,-1,2,2,1,-1,-2,-2 };
+                for (int i = 0; i < 8; i++) {
+                    int rr = r + dr[i];
+                    int cc = c + dc[i];
+                    if (rr >= 0 && rr < 8 && cc >= 0 && cc < 8) {
+                        if (ChessBoard[rr][cc].type == -1 || ChessBoard[rr][cc].color != turn) {
+                            if (canMoveAndSurvive(r, c, rr, cc, false, -1, -1)) {
+                                return TRUE;
+                            }
+                        }
+                    }
+                }
+            }
+            break;
+            case 3:
+            {
+                int dr[4] = { 1,1,-1,-1 };
+                int dc[4] = { 1,-1,1,-1 };
+                for (int i = 0; i < 4; i++) {
+                    for (int rr = r + dr[i], cc = c + dc[i]; rr >= 0 && rr < 8 && cc >= 0 && cc < 8; rr += dr[i], cc += dc[i]) {
+                        if (ChessBoard[rr][cc].type == -1) {
+                            if (canMoveAndSurvive(r, c, rr, cc, false, -1, -1)) {
+                                return TRUE;
+                            }
+                        }
+                        else {
+                            if (ChessBoard[rr][cc].color != turn) {
+                                if (canMoveAndSurvive(r, c, rr, cc, false, -1, -1)) {
+                                    return TRUE;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+            break;
+            case 4:
+            {
+                int dr[8] = { 1,1,-1,-1,1,-1,0,0 };
+                int dc[8] = { 1,-1,1,-1,0,0,1,-1 };
+                for (int i = 0; i < 8; i++) {
+                    for (int rr = r + dr[i], cc = c + dc[i]; rr >= 0 && rr < 8 && cc >= 0 && cc < 8; rr += dr[i], cc += dc[i]) {
+                        if (ChessBoard[rr][cc].type == -1) {
+                            if (canMoveAndSurvive(r, c, rr, cc, false, -1, -1)) {
+                                return TRUE;
+                            }
+                        }
+                        else {
+                            if (ChessBoard[rr][cc].color != turn) {
+                                if (canMoveAndSurvive(r, c, rr, cc, false, -1, -1)) {
+                                    return TRUE;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+            break;
+            case 5:
+            {
+                int dr[8] = { 1,1,-1,-1,1,-1,0,0 };
+                int dc[8] = { 1,-1,1,-1,0,0,1,-1 };
+                for (int i = 0; i < 8; i++) {
+                    int rr = r + dr[i];
+                    int cc = c + dc[i];
+                    if (rr >= 0 && rr < 8 && cc >= 0 && cc < 8) {
+                        if (ChessBoard[rr][cc].type == -1 || ChessBoard[rr][cc].color != turn) {
+                            if (canMoveAndSurvive(r, c, rr, cc, false, -1, -1)) {
+                                return TRUE;
+                            }
+                        }
+                    }
+                }
+            }
+            break;
+            }
+        }
+    }
+    memcpy(ChessBoard, backup, sizeof(ChessBoard));
+    return FALSE;
+}
+
+bool isCheckmate() {
+    int row = -1, col = -1;
+    if (turn == -1) {
+        for (int r = 0;r < 8;r++) {
+            for (int c = 0;c < 8;c++) {
+                if (ChessBoard[r][c].type == 5 && ChessBoard[r][c].color == turn) {
+                    row = r;
+                    col = c;
+                }
+            }
+        }
+    }
+    else {
+        for (int r = 0;r < 8;r++) {
+            for (int c = 0;c < 8;c++) {
+                if (ChessBoard[r][c].type == 5 && ChessBoard[r][c].color == turn) {
+                    row = r;
+                    col = c;
+                }
+            }
+        }
+    }
+    if (row == -1 || col == -1) {
+        return FALSE;
+    }
+    if (!isBeingAttack(row, col)) {
+        return FALSE;
+    }
+    return !isAlive(row, col);
+}
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
@@ -307,6 +601,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 if (promotion) {
                     int promotionPiece = DialogBox(hInst, MAKEINTRESOURCE(IDD_PROMOTION), hWnd, Promotion);
                     ChessBoard[row][col] = { promotionPiece,p,0 };
+                }
+                if (Moved && isCheckmate()) {
+                    LPCWSTR winnerMsg = (turn == 1) ? L"Checkmate!\nBlack win" : L"Checkmate!\nWhite win";
+                    MessageBox(hWnd, winnerMsg, L"Gameover", MB_OK | MB_ICONINFORMATION);
+                    DestroyWindow(hWnd);
                 }
             }
             if (turn == 1 && ChessBoard[row][col].color == 1) {
@@ -449,6 +748,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 {
                     int dr[8] = { 1,1,-1,-1,1,-1,0,0 };
                     int dc[8] = { 1,-1,1,-1,0,0,1,-1 };
+                    auto isSafeSquare = [&](int toR, int toC) {
+                        Chess backup[8][8];
+                        memcpy(backup, ChessBoard, sizeof(ChessBoard));
+                        Chess moved = ChessBoard[row][col];
+                        ChessBoard[row][col] = { -1,0,0 };
+                        ChessBoard[toR][toC] = moved;
+                        bool safe = !isBeingAttack(toR, toC);
+                        memcpy(ChessBoard, backup, sizeof(ChessBoard));
+                        return safe;
+                    };
                     for (int i = 0;i < 8;i++) {
                         int moveR = row + dr[i];
                         int moveC = col + dc[i];
@@ -464,10 +773,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                                     }
                                 }
                             }
-                            if (ChessBoard[moveR][moveC].type == -1 && isKing == FALSE) {
+                            if (ChessBoard[moveR][moveC].type == -1 && isKing == FALSE && isSafeSquare(moveR, moveC)) {
                                 Move[moveR][moveC] = TRUE;
                             }
-                            else if (ChessBoard[moveR][moveC].color != 1 && isKing == FALSE) {
+                            else if (ChessBoard[moveR][moveC].color != 1 && isKing == FALSE && isSafeSquare(moveR, moveC)) {
                                 Attack[moveR][moveC] = TRUE;
                             }
                         }
@@ -620,6 +929,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 {
                     int dr[8] = { 1,1,-1,-1,1,-1,0,0 };
                     int dc[8] = { 1,-1,1,-1,0,0,1,-1 };
+                    auto isSafeSquare = [&](int toR, int toC) {
+                        Chess backup[8][8];
+                        memcpy(backup, ChessBoard, sizeof(ChessBoard));
+                        Chess moved = ChessBoard[row][col];
+                        ChessBoard[row][col] = { -1,0,0 };
+                        ChessBoard[toR][toC] = moved;
+                        bool safe = !isBeingAttack(toR, toC);
+                        memcpy(ChessBoard, backup, sizeof(ChessBoard));
+                        return safe;
+                    };
                     for (int i = 0;i < 8;i++) {
                         int moveR = row + dr[i];
                         int moveC = col + dc[i];
@@ -635,10 +954,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                                     }
                                 }
                             }
-                            if (ChessBoard[moveR][moveC].type == -1 && isKing == FALSE) {
+                            if (ChessBoard[moveR][moveC].type == -1 && isKing == FALSE && isSafeSquare(moveR, moveC)) {
                                 Move[moveR][moveC] = TRUE;
                             }
-                            else if (ChessBoard[moveR][moveC].color != -1 && isKing == FALSE) {
+                            else if (ChessBoard[moveR][moveC].color != -1 && isKing == FALSE && isSafeSquare(moveR, moveC)) {
                                 Attack[moveR][moveC] = TRUE;
                             }
                         }
